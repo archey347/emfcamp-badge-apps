@@ -20,15 +20,25 @@ class Spiral:
 
     def update(self):
 
-        t = time.ticks_ms() * self.delta
+        t = self.getT()
 
         for i in range(LEDS):
+            self.setColor(i, self.getColour(i, t))
 
-            tmp = ((i + t + self.offset) * math.pi) / 6
+    def getT(self):
+        return time.time_ns() * self.delta * 0.000001
 
-            cos_x = math.cos(tmp) ** 10
+    def getColour(self, i, t):
+        tmp = ((i + t + self.offset) * math.pi) / 6
 
-            self.setColor(i, int(cos_x * intensity))
+        cos_x = math.cos(tmp) ** 20
+
+        tmp = cos_x * intensity
+
+        # src: https://assets.lutron.com/a/documents/measured_vs_perceived.pdf
+        result = intensity * ((tmp / intensity) ** 2)
+
+        return int(result)
 
     def setColor(self, i, intensity):
         color = tildagonos.leds[i + 1]
@@ -40,17 +50,21 @@ class Spiral:
         else:
             color = (color[0], color[1], intensity)
 
-        tildagonos.leds[i + 1] = color
+        i = LEDS - i
+
+        tildagonos.leds[i] = color
 
 class ExampleApp(app.App):
     def __init__(self):
         eventbus.emit(PatternDisable())
 
+        self.text = ""
         self.button_states = Buttons(self)
-        delta = 0.01
+        delta = 0.001
         self.spirals = [
             Spiral(delta, 0, 0), 
-            Spiral(delta, 3, 1)       
+            Spiral(delta, 2, 1),
+            Spiral(delta, 4, 2)       
         ]
 
     def update(self, delta):
@@ -62,12 +76,12 @@ class ExampleApp(app.App):
             # The button_states do not update while you are in the background.
             # Calling clear() ensures the next time you open the app, it stays open.
             # Without it the app would close again immediately.
-            mag += 0.001
+            mag += 0.0001
             change = True
             self.button_states.clear()
         
         if self.button_states.get(BUTTON_TYPES["DOWN"]):
-            mag -= 0.001
+            mag -= 0.0001
             change = True
             self.button_states.clear()
 
@@ -102,10 +116,21 @@ class ExampleApp(app.App):
     def draw(self, ctx):
         ctx.save()
         ctx.rgb(0, 0, 0).rectangle(-120,-120,240,240).fill()
+        ctx.rgb(1,1,1).move_to(-90,0).text(self.text)
 
-        out = str(round(self.spirals[0].delta, 4)) + "," + str(intensity)
+        segments = 24
+        segment_width = 2 * math.pi / segments
 
-        ctx.rgb(1,1,1).move_to(-80,0).text(out)
+        for i in range(segments):
+            led_rad = (i / segments) * LEDS
+            rad = (i / segments) * 2 * math.pi
+
+            a = int(led_rad)
+            b = a + 1 % LEDS
+
+            colour = tildagonos.leds[LEDS - a]
+            ctx.rgb(colour[0], colour[1], colour[2]).arc(0, 0, 90, rad, rad + segment_width, 0).stroke()
+
         ctx.restore()
         
 __app_export__ = ExampleApp
