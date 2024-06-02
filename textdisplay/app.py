@@ -22,6 +22,7 @@ class NameBadge(app.App):
         super().__init__()
         self.button_states = Buttons(self)
         self.message = ""
+        self.last_time = 0
 
     async def run(self, render_update):
         last_time = time.ticks_ms()
@@ -40,9 +41,11 @@ class NameBadge(app.App):
             self.minimise()
             self.button_states.clear()
 
-        if self.button_states.get(BUTTON_TYPES["UP"]):
+        cur_time = time.ticks_ms()
+        if cur_time - self.last_time > 10000:
             self.updateMessage()
             self.button_states.clear()
+            self.last_time = cur_time
 
     def draw(self, ctx):
         clear_background(ctx)
@@ -65,7 +68,10 @@ class NameBadge(app.App):
         self.draw_overlays(ctx)
 
     def updateMessage(self):
-        self.message = GetMessage()
+        try:
+            self.message = GetMessage()
+        except Exception as e:
+            1+1
 
 
 __app_export__ = NameBadge

@@ -9,7 +9,6 @@ from events.input import Buttons, BUTTON_TYPES
 from tildagonos import tildagonos, led_colours
 from frontboards import twentyfour
 
-
 class Hexagon(app.App):
     def __init__(self):
         self.red = random.random()
